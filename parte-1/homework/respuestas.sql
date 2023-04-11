@@ -1,3 +1,5 @@
+Homework Clase 1
+
 1.	SELECT *
 FROM stg.product_master
 WHERE categoria= 'Electro'
