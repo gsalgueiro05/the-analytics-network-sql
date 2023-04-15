@@ -1,4 +1,4 @@
-Homework Clase 3
+--Homework Clase 3--
 
 --1
 SELECT nombre, codigo_producto, categoria, coalesce(color,'Unknown') as color
