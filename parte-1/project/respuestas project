@@ -1,0 +1,53 @@
+--Ventas brutas, netas y margen--
+
+SELECT extract(month from fecha) as mes,
+round(sum(CASE
+	when moneda='ARS' then venta/cotizacion_usd_peso
+	when moneda='URU' then venta/cotizacion_usd_uru
+	when moneda='EUR' then venta/cotizacion_usd_eur
+	else 0
+	end),2) as venta_bruta_usd,
+	
+round(sum(CASE
+	when moneda='ARS' then (venta-impuestos)/cotizacion_usd_peso
+	when moneda='URU' then (venta-impuestos)/cotizacion_usd_uru
+	when moneda='EUR' then (venta-impuestos)/cotizacion_usd_eur
+	else 0
+	end),2) as venta_neta_usd,
+	
+round(sum((CASE
+	when moneda='ARS' then (venta+coalesce(descuento,0)+coalesce(creditos,0))/cotizacion_usd_peso
+	when moneda='URU' then (venta+coalesce(descuento,0)+coalesce(creditos,0))/cotizacion_usd_uru
+	when moneda='EUR' then (venta+coalesce(descuento,0)+coalesce(creditos,0))/cotizacion_usd_eur
+	else 0
+	end)- c1.costo_promedio_usd),2) as margen_usd
+	
+from stg.order_line_sale as ols
+LEFT JOIN stg.monthly_average_fx_rate as mafr
+ON extract(month from mafr.mes)=extract(month from ols.fecha)
+LEFT JOIN stg.cost as c1
+ON c1.codigo_producto=ols.producto
+GROUP BY extract(month from fecha)
+ORDER BY extract(month from fecha)
+
+--Margen por categoría de producto--
+
+SELECT extract(month from fecha) as mes, categoria,
+round(sum((CASE
+	when moneda='ARS' then (venta+coalesce(descuento,0)+coalesce(creditos,0))/cotizacion_usd_peso
+	when moneda='URU' then (venta+coalesce(descuento,0)+coalesce(creditos,0))/cotizacion_usd_uru
+	when moneda='EUR' then (venta+coalesce(descuento,0)+coalesce(creditos,0))/cotizacion_usd_eur
+	else 0
+	end)- c1.costo_promedio_usd),2) as margen_usd
+	
+from stg.order_line_sale as ols
+LEFT JOIN stg.monthly_average_fx_rate as mafr
+ON extract(month from mafr.mes)=extract(month from ols.fecha)
+LEFT JOIN stg.cost as c1
+ON c1.codigo_producto=ols.producto
+LEFT JOIN stg.product_master as pm
+ON pm.codigo_producto=ols.producto
+GROUP BY categoria, extract(month from fecha)
+ORDER BY extract(month from fecha)
+
+--ROI por categoria de producto--
