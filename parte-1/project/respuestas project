@@ -1,4 +1,4 @@
---Ventas brutas, netas y margen--
+1--Ventas brutas, netas y margen--
 
 SELECT extract(month from fecha) as mes,
 round(sum(CASE
@@ -30,7 +30,7 @@ ON c1.codigo_producto=ols.producto
 GROUP BY extract(month from fecha)
 ORDER BY extract(month from fecha)
 
---Margen por categoría de producto--
+2--Margen por categoría de producto--
 
 SELECT extract(month from fecha) as mes, categoria,
 round(sum((CASE
@@ -50,4 +50,40 @@ ON pm.codigo_producto=ols.producto
 GROUP BY categoria, extract(month from fecha)
 ORDER BY extract(month from fecha)
 
---ROI por categoria de producto--
+3--ROI por categoria de producto--
+
+WITH CTE_inventario AS (
+	SELECT
+		tienda,
+		ROUND (AVG((inicial+final)/2),2) AS inventario_promedio,
+		INV.sku
+	FROM stg.inventory AS INV
+	GROUP BY sku, tienda
+	ORDER BY sku
+),
+CTE_ventas AS (
+	SELECT 
+		tienda,
+		EXTRACT (month FROM fecha) AS mes_venta,
+		ROUND (SUM (CASE 
+		when moneda='ARS' then (venta-impuestos)/cotizacion_usd_peso
+		when moneda='URU' then (venta-impuestos)/cotizacion_usd_uru
+		when moneda='EUR' then (venta-impuestos)/cotizacion_usd_eur
+		else 0
+		end),2) as venta_neta_usd
+	FROM stg.order_line_sale AS ols
+	LEFT JOIN stg.monthly_average_fx_rate AS mafr
+		ON extract(month from mafr.mes)=extract(month from ols.fecha)
+	GROUP BY mes_venta, tienda
+)
+SELECT 
+	categoria,
+	ROUND ((SUM(inventario_promedio)/SUM(venta_neta_usd)*100),2) AS ROI
+FROM CTE_inventario AS INV
+LEFT JOIN CTE_ventas AS OLS
+	ON INV.tienda = OLS.tienda
+LEFT JOIN stg.product_master AS PM
+	ON INV.sku = PM.codigo_producto
+GROUP BY categoria
+
+4--
