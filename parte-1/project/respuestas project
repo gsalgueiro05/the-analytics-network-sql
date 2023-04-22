@@ -121,5 +121,26 @@ LEFT JOIN stg.monthly_average_fx_rate as mafr
 ON extract(month from mafr.mes)=extract(month from ols.fecha)
 GROUP BY extract (month from fecha)
 
-6--
+6--Tasa de impuesto--
 
+SELECT extract (month from fecha) as mes,
+round(sum(CASE
+	when moneda='ARS' then impuestos/cotizacion_usd_peso
+	when moneda='EUR' then impuestos/cotizacion_usd_eur
+	when moneda='URU' then impuestos/cotizacion_usd_uru
+	else 0
+	end),2) as impuestos_usd
+	
+FROM stg.order_line_sale as ols
+LEFT JOIN stg.monthly_average_fx_rate as mafr
+ON extract(month from mafr.mes)=extract(month from ols.fecha)
+GROUP BY extract (month from fecha)
+ORDER BY extract (month from fecha)
+
+7--Cantidad de créditos otorgados--
+
+SELECT
+	extract (month FROM fecha) as mes,
+	COUNT (creditos)
+FROM stg.order_line_sale
+GROUP BY mes
