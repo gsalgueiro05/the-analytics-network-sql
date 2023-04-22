@@ -86,4 +86,40 @@ LEFT JOIN stg.product_master AS PM
 	ON INV.sku = PM.codigo_producto
 GROUP BY categoria
 
-4--
+4 --AOV--
+
+WITH VTA_USD AS 
+(SELECT orden, extract(month from fecha) as mes,
+round(CASE 
+	when moneda='ARS' then venta/cotizacion_usd_peso
+	when moneda='URU' then venta/cotizacion_usd_uru
+	when moneda='EUR' then venta/cotizacion_usd_eur
+	else 0
+	end,2) as venta_bruta_usd
+
+FROM stg.order_line_sale as ols
+LEFT JOIN stg.monthly_average_fx_rate as mafr
+ON extract(month from mafr.mes)=extract(month from ols.fecha)
+)
+
+SELECT mes, round(sum(venta_bruta_usd)/count(distinct orden),2)as AOV
+FROM VTA_USD
+GROUP BY mes
+
+5-- Impuestos pagados--
+
+SELECT extract (month from fecha) as mes,
+round(sum(CASE
+	when moneda='ARS' then impuestos/cotizacion_usd_peso
+	when moneda='EUR' then impuestos/cotizacion_usd_eur
+	when moneda='URU' then impuestos/cotizacion_usd_uru
+	else 0
+	end),2) as impuestos_usd
+	
+FROM stg.order_line_sale as ols
+LEFT JOIN stg.monthly_average_fx_rate as mafr
+ON extract(month from mafr.mes)=extract(month from ols.fecha)
+GROUP BY extract (month from fecha)
+
+6--
+
