@@ -144,3 +144,17 @@ SELECT
 	COUNT (creditos)
 FROM stg.order_line_sale
 GROUP BY mes
+
+8--Valor pagado final por orden de linea--
+
+SELECT orden, extract (month from fecha) as mes,
+  round(sum((venta + impuestos +coalesce(descuento,0) - coalesce(creditos,0))/(case 
+  when ols.moneda = 'ARS' then cotizacion_usd_peso 
+  when ols.moneda = 'EUR' then cotizacion_usd_eur
+  when ols.moneda = 'URU' then cotizacion_usd_uru
+  end)),2) as valor_pagado
+FROM stg.order_line_sale ols
+LEFT JOIN stg.monthly_average_fx_rate mafr
+ON extract(month from mafr.mes)=extract(month from ols.fecha)
+GROUP BY orden, extract (month from fecha)
+ORDER BY extract (month from fecha), orden
