@@ -38,7 +38,7 @@ ORDER BY sitio
 	GROUP BY nombre
 
 --6
-SELECT i.sku, i.tienda, sm.nombre, (sum(inicial)+sum(final))/2 as inv_promedio, extract(month from fecha) as mes
+SELECT i.sku, i.tienda, sm.nombre, avg((inicial+final)/2) as inv_promedio, extract(month from fecha) as mes
 FROM stg.inventory as i
 LEFT JOIN stg.store_master as sm
 ON sm.codigo_tienda=i.tienda
