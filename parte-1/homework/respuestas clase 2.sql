@@ -39,10 +39,10 @@ GROUP BY tienda
 
 
 --8
-SELECT fecha,tienda, (sum(inicial)+sum(final))/2 as inventario_promedio
+SELECT fecha,tienda, avg((inicial+final)/2) as inventario_promedio
 FROM stg.inventory
-GROUP BY tienda, fecha
-ORDER BY tienda, fecha
+GROUP BY fecha, tienda
+ORDER BY fecha, tienda
 
 --9
 SELECT 	producto, 
