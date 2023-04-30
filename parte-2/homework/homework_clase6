@@ -1,0 +1,25 @@
+--Homework Clase 6--
+
+--1
+
+CREATE VIEW stg.ejercicio1_clase6 AS (
+SELECT tienda, fecha::text::date, conteo FROM stg.market_count
+UNION ALL
+SELECT tienda, fecha::text::date, conteo FROM stg.super_store_count);
+
+--2
+
+CREATE TABLE stg.super_store_count_september (
+	tienda smallint,
+	fecha date,
+	conteo smallint);
+	
+CREATE OR REPLACE VIEW stg.ejercicio1_clase6 AS (
+
+SELECT tienda, fecha::text::date, conteo FROM stg.market_count
+UNION ALL
+SELECT tienda, fecha::text::date, conteo FROM stg.super_store_count
+UNION ALL 
+SELECT tienda, fecha, conteo FROM stg.super_store_count_september);
+
+--3
