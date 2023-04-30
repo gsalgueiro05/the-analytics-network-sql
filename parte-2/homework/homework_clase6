@@ -64,3 +64,15 @@ ON c.codigo_producto=ols.producto
 );
 
 --4
+
+WITH CTE as (
+SELECT *, 
+	row_number()over(partition by orden,producto) as rn 
+FROM stg.order_line_sale)
+
+SELECT * FROM CTE
+WHERE rn >1
+
+--Cada combinación de orden y producto debe ser única. Podemos ver que la orden "M999000061" con el producto "p200087" se repite tres veces--
+
+--5
