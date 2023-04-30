@@ -23,3 +23,44 @@ UNION ALL
 SELECT tienda, fecha, conteo FROM stg.super_store_count_september);
 
 --3
+
+CREATE VIEW stg.ejercicio3_clase6 AS (
+
+	SELECT orden, 
+	
+	round(CASE
+	when moneda='ARS' then (venta+coalesce(descuento,0))/cotizacion_usd_peso - costo_promedio_usd
+	when moneda='EUR' then (venta+coalesce(descuento,0))/cotizacion_usd_eur - costo_promedio_usd
+	when moneda='URU' then (venta+coalesce(descuento,0))/cotizacion_usd_uru - costo_promedio_usd
+	else 0
+	end,2) as margen_venta,
+	
+	round((CASE
+	when moneda='ARS' then venta/cotizacion_usd_peso
+	when moneda='URU' then venta/cotizacion_usd_uru
+	when moneda='EUR' then venta/cotizacion_usd_eur
+	else 0
+	end),2) as venta_usd,
+	
+	round((CASE
+	when moneda='ARS' then coalesce(descuento,0)/cotizacion_usd_peso
+	when moneda='URU' then coalesce(descuento,0)/cotizacion_usd_uru
+	when moneda='EUR' then coalesce(descuento,0)/cotizacion_usd_eur
+	else 0
+	end),2) as descuento_usd,
+	
+	round((CASE
+	when moneda='ARS' then coalesce(creditos,0)/cotizacion_usd_peso
+	when moneda='URU' then coalesce(creditos,0)/cotizacion_usd_uru
+	when moneda='EUR' then coalesce(creditos,0)/cotizacion_usd_eur
+	else 0
+	end),2) as creditos_usd
+		
+FROM stg.order_line_sale as ols
+LEFT JOIN stg.monthly_average_fx_rate as mafr
+ON extract(month from ols.fecha)=extract(month from mafr.mes)
+LEFT JOIN stg.cost as c
+ON c.codigo_producto=ols.producto
+);
+
+--4
