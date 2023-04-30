@@ -26,14 +26,14 @@ SELECT tienda, fecha, conteo FROM stg.super_store_count_september);
 
 CREATE VIEW stg.ejercicio3_clase6 AS (
 
-	SELECT orden, 
+	SELECT *, 
 	
 	round(CASE
 	when moneda='ARS' then (venta+coalesce(descuento,0))/cotizacion_usd_peso - costo_promedio_usd
 	when moneda='EUR' then (venta+coalesce(descuento,0))/cotizacion_usd_eur - costo_promedio_usd
 	when moneda='URU' then (venta+coalesce(descuento,0))/cotizacion_usd_uru - costo_promedio_usd
 	else 0
-	end,2) as margen_venta,
+	end,2) as margen_venta_usd,
 	
 	round((CASE
 	when moneda='ARS' then venta/cotizacion_usd_peso
@@ -76,3 +76,12 @@ WHERE rn >1
 --Cada combinación de orden y producto debe ser única. Podemos ver que la orden "M999000061" con el producto "p200087" se repite tres veces--
 
 --5
+
+SELECT subcategoria,sum(margen_venta_usd) as margen_venta_usd
+FROM stg.ejercicio3_clase6 as v1
+INNER JOIN stg.product_master as pm
+ON v1.producto=pm.codigo_producto
+GROUP BY subcategoria;
+
+--6
+
