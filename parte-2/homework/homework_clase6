@@ -85,3 +85,138 @@ GROUP BY subcategoria;
 
 --6
 
+SELECT orden, producto, venta_usd, sum(venta_usd)over(partition by orden) as total_orden, round((venta_usd/sum(venta_usd)over(partition by orden)) *100,1) as contribucion
+FROM stg.ejercicio3_clase6 as v1
+INNER JOIN stg.product_master as pm
+ON v1.producto=pm.codigo_producto
+ORDER BY v1.orden,producto
+
+--7
+
+CREATE TABLE stg.suppliers (
+	codigo_producto varchar,
+	nombre varchar,
+	is_primary boolean);
+	
+--Ventas por proveedor--:
+
+SELECT nombre,
+sum((CASE 
+	when moneda='ARS' then venta/cotizacion_usd_peso
+	when moneda='URU' then venta/cotizacion_usd_uru
+	when moneda='EUR' then venta/cotizacion_usd_eur
+	else 0
+	end)) as venta_usd
+FROM stg.order_line_sale as ols
+LEFT JOIN stg.monthly_average_fx_rate as mafr
+ON extract(month from ols.fecha)=extract(month from mafr.mes)
+LEFT JOIN stg.suppliers as sup
+ON sup.codigo_producto=ols.producto
+GROUP BY nombre
+
+--Agregar el nombre el proveedor en la vista del punto 3--
+
+DROP VIEW stg.ejercicio3_clase6;
+
+CREATE OR REPLACE VIEW stg.ejercicio3_clase6 AS (
+
+	SELECT ols.*, sup.nombre, 
+	
+	round(CASE
+	when moneda='ARS' then (venta+coalesce(descuento,0))/cotizacion_usd_peso - costo_promedio_usd
+	when moneda='EUR' then (venta+coalesce(descuento,0))/cotizacion_usd_eur - costo_promedio_usd
+	when moneda='URU' then (venta+coalesce(descuento,0))/cotizacion_usd_uru - costo_promedio_usd
+	else 0
+	end,2) as margen_venta_usd,
+	
+	round((CASE
+	when moneda='ARS' then venta/cotizacion_usd_peso
+	when moneda='URU' then venta/cotizacion_usd_uru
+	when moneda='EUR' then venta/cotizacion_usd_eur
+	else 0
+	end),2) as venta_usd,
+	
+	round((CASE
+	when moneda='ARS' then coalesce(descuento,0)/cotizacion_usd_peso
+	when moneda='URU' then coalesce(descuento,0)/cotizacion_usd_uru
+	when moneda='EUR' then coalesce(descuento,0)/cotizacion_usd_eur
+	else 0
+	end),2) as descuento_usd,
+	
+	round((CASE
+	when moneda='ARS' then coalesce(creditos,0)/cotizacion_usd_peso
+	when moneda='URU' then coalesce(creditos,0)/cotizacion_usd_uru
+	when moneda='EUR' then coalesce(creditos,0)/cotizacion_usd_eur
+	else 0
+	end),2) as creditos_usd
+		
+FROM stg.order_line_sale as ols
+LEFT JOIN stg.monthly_average_fx_rate as mafr
+ON extract(month from ols.fecha)=extract(month from mafr.mes)
+LEFT JOIN stg.cost as c
+ON c.codigo_producto=ols.producto
+LEFT JOIN stg.suppliers as sup
+ON sup.codigo_producto=ols.producto
+);
+
+--8
+
+SELECT * FROM stg.ejercicio3_clase6
+select * from stg.order_line_sale
+select * from stg.suppliers
+order by codigo_producto
+
+WITH CTE as (
+SELECT *, 
+	row_number()over(partition by orden,producto) as rn 
+FROM stg.ejercicio3_clase6)
+
+SELECT * FROM CTE
+WHERE rn >1
+
+--Podemos ver que al unir con la tabla de suppliers pasamos de 40 a 54 registros. Esto sucede porque hay más de un proveedor para un producto.
+Entonces al unir las tablas se duplica la linea ya que el programa no sabe cual es el proveedor que corresponde en caso de haber 2--
+--Para solucionarlo, se debería tomar los proveedores en los que la columna is_primary=true.--
+
+DROP VIEW stg.ejercicio3_clase6;
+
+CREATE OR REPLACE VIEW stg.ejercicio3_clase6 AS (
+
+	SELECT ols.*, sup.nombre, 
+	
+	round(CASE
+	when moneda='ARS' then (venta+coalesce(descuento,0))/cotizacion_usd_peso - costo_promedio_usd
+	when moneda='EUR' then (venta+coalesce(descuento,0))/cotizacion_usd_eur - costo_promedio_usd
+	when moneda='URU' then (venta+coalesce(descuento,0))/cotizacion_usd_uru - costo_promedio_usd
+	else 0
+	end,2) as margen_venta_usd,
+	
+	round((CASE
+	when moneda='ARS' then venta/cotizacion_usd_peso
+	when moneda='URU' then venta/cotizacion_usd_uru
+	when moneda='EUR' then venta/cotizacion_usd_eur
+	else 0
+	end),2) as venta_usd,
+	
+	round((CASE
+	when moneda='ARS' then coalesce(descuento,0)/cotizacion_usd_peso
+	when moneda='URU' then coalesce(descuento,0)/cotizacion_usd_uru
+	when moneda='EUR' then coalesce(descuento,0)/cotizacion_usd_eur
+	else 0
+	end),2) as descuento_usd,
+	
+	round((CASE
+	when moneda='ARS' then coalesce(creditos,0)/cotizacion_usd_peso
+	when moneda='URU' then coalesce(creditos,0)/cotizacion_usd_uru
+	when moneda='EUR' then coalesce(creditos,0)/cotizacion_usd_eur
+	else 0
+	end),2) as creditos_usd
+		
+FROM stg.order_line_sale as ols
+LEFT JOIN stg.monthly_average_fx_rate as mafr
+ON extract(month from ols.fecha)=extract(month from mafr.mes)
+LEFT JOIN stg.cost as c
+ON c.codigo_producto=ols.producto
+LEFT JOIN stg.suppliers as sup
+ON sup.codigo_producto=ols.producto
+WHERE is_primary=true);
